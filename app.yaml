@@ -1,0 +1,25 @@
+name: talkiemono
+services:
+  - name: server
+    github:
+      repo: mrzepecki/talkie
+      branch: main
+    source_dir: server
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    http_port: 8080
+    routes:
+      - path: /socket.io
+    run_command: node server.js
+
+static_sites:
+  - name: client
+    github:
+      repo: mrzepecki/talkie
+      branch: main
+    source_dir: client
+    build_command: npm ci && npm run build
+    output_dir: dist
+    routes:
+      - path: /

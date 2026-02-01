@@ -4,8 +4,6 @@ import { Server } from "socket.io";
 import cors from "cors";
 import crypto from "crypto";
 
-const PORT = process.env.PORT || 3001;
-
 // === KISS config ===
 const ALLOWED_ORIGINS = [
 	"http://localhost:5173", // Vite dev
@@ -91,6 +89,7 @@ function tryMatch() {
 		
 		io.to(userSocket.get(a)).emit("chat:matched", { roomId });
 		io.to(userSocket.get(b)).emit("chat:matched", { roomId });
+		console.log("match", a, b);
 	}
 }
 
@@ -104,14 +103,16 @@ io.on("connection", (socket) => {
 	
 	const userId = sessionId;
 	userSocket.set(userId, socket.id);
+	console.log("connect", userId, socket.id);
 	
 	socket.emit("queue:status", { status: "idle" });
 	
 	socket.on("queue:join", () => {
 		if (userRoom.has(userId)) return;
 		removeFromQueue(userId);
-		queue.push(userId);
+		if (!queue.includes(userId)) queue.push(userId);
 		socket.emit("queue:status", { status: "queued" });
+		console.log("join", userId, "queue:", queue.length);
 		tryMatch();
 	});
 	
@@ -188,4 +189,5 @@ io.on("connection", (socket) => {
 	});
 });
 
-server.listen(PORT, () => console.log(`✅ server on http://localhost:${PORT}`));
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, "0.0.0.0", () => console.log("listening on", PORT));
