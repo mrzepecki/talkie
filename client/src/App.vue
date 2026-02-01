@@ -138,6 +138,11 @@ body {
   border: 1px solid #431949;
   background: transparent;
   padding: 0 10px;
+  color: #431949;
+
+  &::placeholder{
+    color: #431949;
+  }
 }
 
 .messages {
