@@ -5,10 +5,12 @@ import cors from "cors";
 import crypto from "crypto";
 
 // === KISS config ===
-const ALLOWED_ORIGINS = [
-	"http://localhost:5173", // Vite dev
-	// dodasz potem domenę hostingu frontu, np. "https://twoj-front.netlify.app"
-];
+const dev = process.env.NODE_ENV !== "production";
+
+const ALLOWED_ORIGINS = dev
+	? ["http://localhost:5173"]
+	: []; // prod: allow all (na MVP). Potem ustawisz konkretną domenę.
+
 
 const app = express();
 app.use(express.json());
@@ -17,10 +19,12 @@ app.use(express.json());
 app.use(
 	cors({
 		origin: (origin, cb) => {
-			if (!origin) return cb(null, true);
-			if (ALLOWED_ORIGINS.length === 0) return cb(null, true);
-			if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-			return cb(new Error("CORS blocked"), false);
+			if (dev) {
+				if (!origin) return cb(null, true);
+				return cb(null, ALLOWED_ORIGINS.includes(origin));
+			}
+			// prod: allow all origins (MVP)
+			return cb(null, true);
 		},
 		credentials: true,
 	})
@@ -31,16 +35,21 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 const server = http.createServer(app);
 
 const io = new Server(server, {
-	transports: ["websocket"],
+	// NIE wymuszamy websocket-only na DO (na razie)
 	cors: {
 		origin: (origin, cb) => {
-			if (!origin) return cb(null, true);
-			if (ALLOWED_ORIGINS.length === 0) return cb(null, true);
-			if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-			return cb(new Error("Origin blocked"), false);
+			if (dev) {
+				if (!origin) return cb(null, true);
+				return cb(null, ALLOWED_ORIGINS.includes(origin));
+			}
+			return cb(null, true);
 		},
 		credentials: true,
 	},
+	
+	// jeśli DO ma "Path trimmed" dla /socket.io i nadal masz error,
+	// odkomentuj to:
+	// path: "/",
 });
 
 // ===== In-memory state (MVP) =====
@@ -189,5 +198,5 @@ io.on("connection", (socket) => {
 	});
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT || 8080);
 server.listen(PORT, "0.0.0.0", () => console.log("listening on", PORT));
